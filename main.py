@@ -10,8 +10,13 @@ from fasthtml.common import (
 )
 import requests
 import os
+from dotenv import load_dotenv
 
-ULTRAVOX_API_KEY = os.environ.get('ULTRAVOX_API_KEY', "<your api key>")
+load_dotenv()  # Add this line before using env variables
+
+ULTRAVOX_API_KEY = os.environ.get('ULTRAVOX_API_KEY')
+if not ULTRAVOX_API_KEY:
+    raise ValueError("ULTRAVOX_API_KEY environment variable is not set")
 
 app, rt = fast_app(pico=False, hdrs=(Script(src="https://cdn.tailwindcss.com"),))
 
