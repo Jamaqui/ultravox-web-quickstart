@@ -6,6 +6,8 @@ from fasthtml.common import (
     Button,
     H1,
     Span,
+    Img,
+    Video,
     serve
 )
 import requests
@@ -50,18 +52,44 @@ const debugMessages = new Set(["debug"]);
 window.UVSession = new UltravoxSession({ experimentalMessages: debugMessages });
 """
 
-TW_BUTTON = "bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded my-4"
+TW_BUTTON = "bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2.5 px-6 rounded-lg transition duration-150 ease-in-out shadow-sm hover:shadow-md"
 
 def client_js(callDetails):
     return f"""
     async function joinCall() {{
+        // Hide default image and show initializing state when call starts
+        htmx.find("#DefaultVoiceImg").style.display = "none";
         const callStatus = await window.UVSession.joinCall("{callDetails.get('joinUrl')}");
         console.log(callStatus);
     }}
 
+    // Set initial display states
+    htmx.find("#AgentVoiceImg").style.display = "none";
+    htmx.find("#UserVoiceImg").style.display = "none";
+    htmx.find("#DefaultVoiceImg").style.display = "block";
+
     window.UVSession.addEventListener('status', (e) => {{
         let statusDiv = htmx.find("#call-status")
         statusDiv.innerText = e.target._status;
+        
+        // Show/hide voice animations based on status
+        const agentImg = htmx.find("#AgentVoiceImg");
+        const userImg = htmx.find("#UserVoiceImg");
+        const defaultImg = htmx.find("#DefaultVoiceImg");
+        
+        if (e.target._status === "speaking") {{
+            agentImg.style.display = "block";
+            userImg.style.display = "none";
+            defaultImg.style.display = "none";
+        }} else if (e.target._status === "listening") {{
+            agentImg.style.display = "none";
+            userImg.style.display = "block";
+            defaultImg.style.display = "none";
+        }} else {{
+            agentImg.style.display = "none";
+            userImg.style.display = "none";
+            defaultImg.style.display = "none";  // Keep default hidden after call starts
+        }}
     }});
 
     window.UVSession.addEventListener('transcripts', (e) => {{
@@ -88,29 +116,50 @@ def client_js(callDetails):
 def layout(*args, **kwargs):
     return Main(
         Div(
-            Div(*args, **kwargs, cls="mx-auto max-w-3xl"),
-            cls="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8",
+            Div(
+                # Main panel with shadow, rounded corners, and padding
+                Div(*args, **kwargs,
+                    cls="bg-white shadow-lg rounded-lg p-8 max-w-[400px] mx-auto mt-10 border border-gray-200"
+                ),
+                cls="mx-auto max-w-3xl"
+            ),
+            cls="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 min-h-screen bg-gray-50 py-12"
         )
     )
-
 
 @rt("/")
 def get():
     button = Button("Start call", hx_post="/start", hx_target="#call-mgmt", hx_swap="outerHTML", cls=TW_BUTTON)
     return layout(
         Script(js_on_load, type="module"),
-        H1("The Cat Fact Assistant", cls="text-xl font-bold mt-8"),
+        H1("The Cat Fact Assistant", cls="text-2xl font-bold mb-8 text-center text-gray-800"),
         Div(
             Div(
                 "Status: ",
-                Span("Waiting", id="call-status", cls="font-bold"),
+                Span("Waiting", id="call-status", cls="font-bold text-blue-600"),
+                cls="mb-4 text-gray-700"
             ),
             Div(
-                "Call ID:",
-                Span("N/A", id="call-id", cls="font-bold"),
+                "Call ID: ",
+                Span("N/A", id="call-id", cls="font-bold text-gray-900"),
+                cls="mb-6 text-gray-700"
             ),
-            Div(button),
-            id="call-mgmt"
+            Div(
+                Img(src="Voice.svg", alt="Default Voice Icon", cls="h-[100px] w-[100px] mx-auto block", id="DefaultVoiceImg"),
+                Video(src="VoiceBlue.webm", type="video/webm", alt="Agent Voice Animation", 
+                    cls="h-[125px] w-[125px] mx-auto hidden",
+                    controls="false", autoplay="true", loop="true", muted="true",
+                    poster="Voice.svg", id="AgentVoiceImg",
+                ),
+                Video(src="VoiceRed.webm", type="video/webm", alt="User Voice Animation",
+                    cls="h-[125px] w-[125px] mx-auto hidden",
+                     controls="false", autoplay="true", loop="true", muted="true",
+                    poster="Voice.svg", id="UserVoiceImg"),
+                cls="flex justify-center items-center mb-6"
+            ),
+            Div(button, cls="text-center"),
+            id="call-mgmt",
+            cls="space-y-4"
         ),
     )
 
@@ -128,21 +177,24 @@ async def post():
         return Div(
             Div(
                 "Status: ",
-                Span("Initializing", id="call-status", cls="font-bold"),
+                Span("Initializing", id="call-status", cls="font-bold text-blue-600"),
+                cls="mb-4 text-gray-700"
             ),
             Div(
                 "Call ID: ",
-                Span(callDetails.get("callId"), id="call-id", cls="font-bold"),
+                Span(callDetails.get("callId"), id="call-id", cls="font-bold text-gray-900"),
+                cls="mb-6 text-gray-700"
             ),
-            Button("End call", id="end-call", cls=TW_BUTTON, hx_get="/end", hx_swap="outerHTML"),
-            Div("", id="transcript"),
+            Button("End call", id="end-call", cls=TW_BUTTON + " bg-red-500 hover:bg-red-600", hx_get="/end", hx_swap="outerHTML"),
+            Div("", id="transcript", cls="mt-6 p-4 bg-gray-50 rounded-lg text-gray-700 min-h-[100px]"),
             Script(code=js),
+            cls="space-y-4"
         )
     else:
         return r.text
 
 @rt("/end")
 def get():
-    return Button("Restart", cls=TW_BUTTON, hx_get="/", hx_target="body", hx_boost="false")
+    return Button("Restart", cls=TW_BUTTON + " bg-green-500 hover:bg-green-600", hx_get="/", hx_target="body", hx_boost="false")
 
 serve()
