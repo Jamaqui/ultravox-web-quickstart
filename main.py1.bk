@@ -1,0 +1,380 @@
+from fasthtml.common import (
+    fast_app,
+    Script,
+    Main,
+    Div,
+    Button,
+    H1,
+    Span,
+    Img,
+    Video,
+    A,
+    serve
+)
+import requests
+import os
+from dotenv import load_dotenv
+
+load_dotenv()  # Add this line before using env variables
+
+ULTRAVOX_API_KEY = os.environ.get('ULTRAVOX_API_KEY')
+if not ULTRAVOX_API_KEY:
+    raise ValueError("ULTRAVOX_API_KEY environment variable is not set")
+
+app, rt = fast_app(pico=False, hdrs=(Script(src="https://cdn.tailwindcss.com"),))
+
+def fixie_request(method, path, **kwargs):
+    u = "https://api.ultravox.ai/api"
+    return requests.request(
+        method, u + path, headers={"X-API-Key": ULTRAVOX_API_KEY}, **kwargs
+    )
+
+
+SYSTEM_PROMPT = """
+#Rol
+You are Andrea a friendly AI bilingual (Spanish/English) hotel receptionist for the Poblado Alto Hotel. 
+You kindly respond to the user queries. Respond using the information found below.
+If the information user is asking for it's not found below, you answer "Sorry, I don't have that information available".
+You smoothly encourage the user to take a reservation with us.
+You're interacting with the user over voice, so speak casually.
+Keep your responses short and to the point, much like someone would in dialogue. 
+Since this is a voice conversation, do not use lists, bullets, emojis, or other things that do not translate to voice.
+
+Los precios son en pesos colombianos (COP) y dólares americanos (USD).
+
+#INFORMACION HOTEL POBLADO ALTO (In Spanish)
+
+Ubicado en el corazón de la ciudad de Medellín (Antioquia, Colombia), el Hotel Poblado Alto es la mejor elección para hospedarte y sentirte como en casa.
+Disfruta de una vista rodeada de verdes incomparables, las delicias de una carta pensada para cubrir todas tus necesidades, el confort de nuestras amplias habitaciones y la amabilidad de nuestros colaboradores que se traducirá en tu mejor experiencia.
+
+##CHECK IN
+11 AM
+
+##CHECK OUT
+3 PM
+
+#HABITACIONES
+
+##JUNIOR SUITE
+Una habitación tan cómoda que no desearás haber elegido otra. Nuestra habitación Junior Suite cuenta con 2 espacios para mayor comfort.
+Precio por noche: 
+COP $500.000
+US $125
+
+##ESTÁNDAR QUEEN​
+Moderna, amplia y elegante, este tipo de habitación cuenta con una cómoda cama Queen, que ofrece la posibilidad de un agradable descanso luego de una ardua jornada de trabajo.
+Precio por noche: 
+COP $600.000
+US $150
+
+##ESTÁNDAR TWIN
+Las habitaciones Estándar Twin del Hotel Poblado Alto están dotadas con dos camas para que tu estadía en compañía sea muy cómoda, además, de amenities completos como solo los hoteles 5 estrellas pueden hacerlo.
+Precio por noche: 
+COP $650.000
+US $160
+
+##QUEEN PLUS
+Porque sabemos que la comodidad es tu prioridad, en el Hotel Poblado Alto contamos con habitaciones Queen Plus que ofrecen detalles adicionales para que tu estancia sea mucho más memorable.
+En el Hotel Poblado Alejandría reconocemos el valor de la comodidad y el descanso. Disfruta de una cama estándar Queen y de amenities especiales, ¡descúbrelos!
+Precio por noche: 
+COP $800.000
+US $200
+
+##TWIN PLUS
+¿No viajas solo o sola?, ¿deseas compartir tu habitación pero sin dejar de lado la comodidad?, ¡perfecto! elige nuestras habitaciones Twin Plus del Hotel Poblado Alto que ofrecen detalles adicionales para que tu estancia sea mucho más memorable.
+Precio por noche: 
+COP $700.000
+US $175
+
+#PLANES ESPECIALES
+Para una experiencia más completa ¡Elige nuestros planes especiales!
+
+##PLAN PAREJAS
+Una estadía con una experiencia romántica. Elige este plan si requieres alojamiento para un día especial, ¡nosotros nos encargamos de todo!
+
+Ramo de flores
+Botella de vino.
+Batas de baño en la habitación.
+Desayuno incluido en la tarifa con opción de room service sin cargo.
+Up-grade de habitación (sujeto a disponibilidad)
+Late check out (sujeto a disponibilidad)
+Precio por noche: 
+COP $1.000.000
+US $250
+
+##CELEBRACIÓN DE CUMPLEAÑOS
+
+Este día especial, merece una experiencia espacial. ¿qué tal un break en nuestro hotel?
+
+Decoración.
+Botella de vino.
+Torta de cumpleaños.
+Desayuno incluido en la tarifa con opción de room service sin cargo.
+Up-grade de habitación (sujeto a disponibilidad)
+Late check out (sujeto a disponibilidad)
+Precio por noche: 
+COP $1.000.000
+US $250
+
+#RESTAURANTE-BAR
+Nuestro Restaurante-Bar ubicado en la terraza del hotel es el lugar perfecto para disfrutar de nuestra comida gourmet, tomarse unos tragos y tener una buena conversación entre amigos con música en vivo.
+
+Nuestra música favorita es el Soft Rock, el Blues y el Jazz.
+
+##HORARIOS DEL RESTAURANTE-BAR: 
+LUNES & MARTES
+Desayuno: de 7 a.m. a 11 a.m.
+Comida & bar: de 11 a.m. a 12 a.m.
+
+MIÉRCOLES A SÁBADO
+Desayuno: de 7 a.m. a 11 a.m.
+Comida & bar: de 11 a.m. a 2 a.m.
+
+DOMINGOS & FESTIVOS
+Desayuno: de 7 a.m. a 11 a.m.
+Comida & bar: de 11 a.m. a 10 p.m.
+
+#DESCUBRE LOS ALREDEDORES
+
+##Centros Comerciales
+
+Encuentra cerca del hotel Poblado Alto el centro comercial Oviedo, Centro Comercial Santafé y el centro de negocios Milla de Oro para visitar tiendas y restaurantes.
+
+##Museos
+
+El Museo El Castillo es el museo con la mayor colección de artes decorativas de Medellín, un atractivo turístico significativo para los amantes de la cultura, el arte y la tradición. Además del recorrido, podrás hacer planes de picnic en el jardín o asistir al bazar de antigüedades. El Museo de Arte Moderno de Medellín (MAMM) es para ti si aprecias el arte desde una perspectiva social y disruptiva. El Museo está ubicado a unos cuantos minutos del Hotel, en una zona llamada Ciudad del Río; rodeado de restaurantes y transporte de fácil acceso. Este lugar es para ti si te gustan las experiencias significativas e inmersivas en torno al arte.
+
+##Parques
+
+El parque de La Presidenta, el parque de El Poblado y el parque de La Bailarina son espacios verdes dentro de la ciudad, pulmones acogedores y tranquilos para hacer deporte, caminar, respirar aire fresco y salir del caos de la ciudad por momentos. Si conectas con los lugares verdes y tranquilos, visita estos parques en Medellín.
+
+##Transporte
+
+Puedes bajar a la Avenida el Poblado, como es una vía principal, tiene un amplio flujo de transporte público: bus y e integrado de bus para ir al Metro. También puedes solicitar servicio de Uber o taxi desde el Hotel.
+"""
+
+EXAMPLE_TOOL = [
+    {
+        "temporaryTool": {
+            "modelToolName": "getCatFact",
+            "description": "Returns back a random cat fact",
+            "http": {
+                "baseUrlPattern": "https://catfact.ninja/fact",
+                "httpMethod": "GET",
+            },
+        }
+    }
+]
+
+js_on_load = """
+import { UltravoxSession } from 'https://esm.sh/ultravox-client';
+const debugMessages = new Set(["debug"]);
+window.UVSession = new UltravoxSession({ experimentalMessages: debugMessages });
+"""
+
+TW_BUTTON = "bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2.5 px-6 rounded-lg transition duration-150 ease-in-out shadow-sm hover:shadow-md"
+
+def client_js(callDetails):
+    return f"""
+    async function joinCall() {{
+        // Hide default image and show initializing state when call starts
+        htmx.find("#DefaultVoiceImg").style.display = "none";
+        const callStatus = await window.UVSession.joinCall("{callDetails.get('joinUrl')}");
+        console.log(callStatus);
+    }}
+
+    // Set initial display states
+    htmx.find("#AgentVoiceImg").style.display = "none";
+    htmx.find("#UserVoiceImg").style.display = "none";
+    htmx.find("#DefaultVoiceImg").style.display = "block";
+
+    window.UVSession.addEventListener('status', (e) => {{
+        let statusDiv = htmx.find("#call-status")
+        statusDiv.innerText = e.target._status;
+        
+        // Show/hide voice animations based on status
+        const agentImg = htmx.find("#AgentVoiceImg");
+        const userImg = htmx.find("#UserVoiceImg");
+        const defaultImg = htmx.find("#DefaultVoiceImg");
+        
+        if (e.target._status === "speaking") {{
+            agentImg.style.display = "block";
+            userImg.style.display = "none";
+            defaultImg.style.display = "none";
+        }} else if (e.target._status === "listening") {{
+            agentImg.style.display = "none";
+            userImg.style.display = "block";
+            defaultImg.style.display = "none";
+        }} else {{
+            agentImg.style.display = "none";
+            userImg.style.display = "none";
+            defaultImg.style.display = "none";  // Keep default hidden after call starts
+        }}
+    }});
+
+    window.UVSession.addEventListener('transcripts', (e) => {{
+        let transcripts = e.target._transcripts;
+        transcript = htmx.find("#transcript");
+        transcript.innerText = transcripts.filter(t => t && t.speaker !== "user").map(t => t ? t.text : "").join("\\n");
+    }});
+
+    window.UVSession.addEventListener('experimental_message', (msg) => {{
+      console.log('Debug: ', JSON.stringify(msg));
+    }});
+
+    joinCall();
+
+    htmx.on("#end-call", "click", async (e) => {{
+        try {{
+            await UVSession.leaveCall();
+        }} catch (error) {{
+            console.error("Error leaving call:", error);
+        }}
+    }})
+    """
+
+def layout(*args, **kwargs):
+    return Main(
+        Div(
+            Div(
+                # Main panel with shadow, rounded corners, and padding
+                Div(*args, **kwargs,
+                    cls="bg-white shadow-lg rounded-lg p-4 max-w-[350px] mx-auto border border-gray-200"  # Removed mt-10
+                ),
+                cls="mx-auto max-w-3xl"
+            ),
+            cls="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 min-h-screen bg-gray-50 py-1"
+        )
+    )
+
+@rt("/")
+def get():
+    button = Button("Llamar/Call", hx_post="/start", hx_target="#call-mgmt", hx_swap="outerHTML", cls=TW_BUTTON)
+    return layout(
+        Script(js_on_load, type="module"),
+        Div(
+            Img(src="Logo.png", alt="Logo", cls="mx-auto max-w-[200px] w-full mb-4"),
+            Div(cls="h-px bg-gray-200 w-full mb-6"),
+            cls="text-center"
+        ),
+        Div(
+            H1("Hotel Poblado Alto", cls="text-3xl font-bold mb-1 text-center text-gray-700"),
+            H1("Recepción/Receptionist", cls="text-xl font-normal text-center text-gray-500"),
+            cls="mb-8"
+        ),
+        Div(
+            Div(
+                Img(src="Voice.svg", alt="Default Voice Icon", cls="h-[100px] w-[100px] mx-auto block", id="DefaultVoiceImg"),
+                Video(src="VoiceBlue.webm", type="video/webm", alt="Agent Voice Animation", 
+                    cls="h-[125px] w-[125px] mx-auto hidden",
+                    controls="false", autoplay="true", loop="true", muted="true",
+                    poster="Voice.svg", id="AgentVoiceImg",
+                ),
+                Video(src="VoiceRed.webm", type="video/webm", alt="User Voice Animation",
+                    cls="h-[125px] w-[125px] mx-auto hidden",
+                     controls="false", autoplay="true", loop="true", muted="true",
+                    poster="Voice.svg", id="UserVoiceImg"),
+                cls="flex justify-center items-center mb-6"
+            ),
+            Div(button, cls="text-center mb-8"),
+            Div(cls="h-px bg-gray-200 w-full mb-4"),
+            Div(
+                "Status: ",
+                Span("Waiting", id="call-status", cls="text-blue-600"),
+                cls="mb-4 text-gray-700 text-center"
+            ),
+            # Div(
+            #     "Call ID: ",
+            #     Span("N/A", id="call-id", cls="font-bold text-gray-900"),
+            #     cls="text-gray-700"
+            # ),
+            Div(
+                Span("Powered by ", cls="italic"),
+                Span(A("AI-Agency.dev", href="https://ai-agency.dev", cls="text-gray-400 hover:text-gray-500")),
+                cls="text-center text-gray-400 text-sm mt-4"
+            ),
+            id="call-mgmt"
+        )
+    )
+
+@rt("/start")
+async def post():
+    d = {
+        "systemPrompt": SYSTEM_PROMPT,
+        "temperature": 0.4,
+        "model": "fixie-ai/ultravox",
+        "voice": "b084d8f2-c9f9-491c-8059-d39dde80d58b",
+        "languageHint": "es-CO",
+        "initialMessages": [
+            {
+                "role": "MESSAGE_ROLE_AGENT",
+                "text": "Hola, soy Andrea, tu asistente virtual del Hotel Poblado Alto. En que te puedo ayudar hoy?",
+                "invocationId": "",
+                "toolName": "",
+                "errorDetails": "",
+                "medium": "MESSAGE_MEDIUM_VOICE",
+                "callStageMessageIndex": 1,
+                "callStageId": "",
+                "callState": {}
+            }
+        ],
+        "joinTimeout": "30s",
+        "maxDuration": "600s",
+        "timeExceededMessage": "Time limit reached.",
+        "inactivityMessages": [
+            {
+                "duration": "10s",
+                "message": "No puedo escucharte. Voy a colgar la llamada. Por favor intenta de nuevo.",
+                "endBehavior": "END_BEHAVIOR_UNSPECIFIED"
+            }
+        ],
+        "recordingEnabled": True,
+        "firstSpeaker": "FIRST_SPEAKER_AGENT",
+        "transcriptOptional": True,
+        "initialOutputMedium": "MESSAGE_MEDIUM_VOICE",
+        "vadSettings": {
+            "turnEndpointDelay": "0.384s",
+            "minimumTurnDuration": "0s",
+            "minimumInterruptionDuration": "0.090s",
+            "frameActivationThreshold": 0.1
+        },
+        "firstSpeakerSettings": {
+            "agent": {
+                "uninterruptible": True,
+                "text": "Hola, soy Andrea, tu asistente virtual del Hotel Poblado Alto. En que te puedo ayudar hoy?",
+                "delay": "3s"
+            }
+        },
+        "experimentalSettings": {},
+        "metadata": {},
+        "initialState": {},                
+        "selectedTools": []
+    }
+    r = fixie_request("POST", "/calls", json=d)
+    if r.status_code == 201:
+        callDetails = r.json()
+        js = client_js(callDetails)
+        return Div(
+            Div(
+                "Status: ",
+                Span("Initializing", id="call-status", cls="font-bold text-blue-600"),
+                cls="mb-4 text-gray-700"
+            ),
+            # Div(
+            #     "Call ID: ",
+            #     Span(callDetails.get("callId"), id="call-id", cls="font-bold text-gray-900"),
+            #     cls="mb-6 text-gray-700"
+            # ),
+            Button("Colgar/End Call", id="end-call", cls=TW_BUTTON + " bg-red-500 hover:bg-red-600", hx_get="/end", hx_swap="outerHTML"),
+            Div("", id="transcript", cls="mt-6 p-4 bg-gray-50 rounded-lg text-gray-700 min-h-[100px]"),
+            Script(code=js),
+            cls="space-y-4"
+        )
+    else:
+        return r.text
+
+@rt("/end")
+def get():
+    return Button("Llamar/Restart", id="re-start", cls=TW_BUTTON + " bg-green-500 hover:bg-green-600", hx_get="/", hx_target="body", hx_boost="false")
+
+serve()

@@ -8,6 +8,7 @@ from fasthtml.common import (
     Span,
     Img,
     Video,
+    A,
     serve
 )
 import requests
@@ -27,11 +28,6 @@ def fixie_request(method, path, **kwargs):
     return requests.request(
         method, u + path, headers={"X-API-Key": ULTRAVOX_API_KEY}, **kwargs
     )
-
-
-SYSTEM_PROMPT = """
-You are a helpful assistant. In case someone asks, you can get a random cat fact via the `getCatFact` tool.
-"""
 
 EXAMPLE_TOOL = [
     {
@@ -119,31 +115,30 @@ def layout(*args, **kwargs):
             Div(
                 # Main panel with shadow, rounded corners, and padding
                 Div(*args, **kwargs,
-                    cls="bg-white shadow-lg rounded-lg p-8 max-w-[400px] mx-auto mt-10 border border-gray-200"
+                    cls="bg-white shadow-lg rounded-lg p-4 max-w-[350px] mx-auto border border-gray-200"  # Removed mt-10
                 ),
                 cls="mx-auto max-w-3xl"
             ),
-            cls="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 min-h-screen bg-gray-50 py-12"
+            cls="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 min-h-screen bg-gray-50 py-1"
         )
     )
 
 @rt("/")
 def get():
-    button = Button("Start call", hx_post="/start", hx_target="#call-mgmt", hx_swap="outerHTML", cls=TW_BUTTON)
+    button = Button("Llamar/Call", hx_post="/start", hx_target="#call-mgmt", hx_swap="outerHTML", cls=TW_BUTTON)
     return layout(
         Script(js_on_load, type="module"),
-        H1("The Cat Fact Assistant", cls="text-2xl font-bold mb-8 text-center text-gray-800"),
         Div(
-            Div(
-                "Status: ",
-                Span("Waiting", id="call-status", cls="font-bold text-blue-600"),
-                cls="mb-4 text-gray-700"
-            ),
-            Div(
-                "Call ID: ",
-                Span("N/A", id="call-id", cls="font-bold text-gray-900"),
-                cls="mb-6 text-gray-700"
-            ),
+            Img(src="Logo.png", alt="Logo", cls="mx-auto max-w-[200px] w-full mb-4"),
+            Div(cls="h-px bg-gray-200 w-full mb-6"),
+            cls="text-center"
+        ),
+        Div(
+            H1("Hotel Poblado Alto", cls="text-3xl font-bold mb-1 text-center text-gray-700"),
+            H1("Recepción/Receptionist", cls="text-xl font-normal text-center text-gray-500"),
+            cls="mb-8"
+        ),
+        Div(
             Div(
                 Img(src="Voice.svg", alt="Default Voice Icon", cls="h-[100px] w-[100px] mx-auto block", id="DefaultVoiceImg"),
                 Video(src="VoiceBlue.webm", type="video/webm", alt="Agent Voice Animation", 
@@ -157,20 +152,25 @@ def get():
                     poster="Voice.svg", id="UserVoiceImg"),
                 cls="flex justify-center items-center mb-6"
             ),
-            Div(button, cls="text-center"),
-            id="call-mgmt",
-            cls="space-y-4"
-        ),
+            Div(button, cls="text-center mb-8"),
+            Div(cls="h-px bg-gray-200 w-full mb-4"),
+            Div(
+                "Status: ",
+                Span("Waiting", id="call-status", cls="text-blue-600"),
+                cls="mb-4 text-gray-700 text-center"
+            ),
+            Div(
+                Span("Powered by ", cls="italic"),
+                Span(A("AI-Agency.dev", href="https://ai-agency.dev", cls="text-gray-400 hover:text-gray-500")),
+                cls="text-center text-gray-400 text-sm mt-4"
+            ),
+            id="call-mgmt"
+        )
     )
 
 @rt("/start")
 async def post():
-    d = {
-        "systemPrompt": SYSTEM_PROMPT,
-        "voice": "Mark",
-        "selectedTools": EXAMPLE_TOOL,
-    }
-    r = fixie_request("POST", "/calls", json=d)
+    r = fixie_request("POST", "/agents/b97f376d-f229-4ae2-89f9-5ea04a2600d8/calls")
     if r.status_code == 201:
         callDetails = r.json()
         js = client_js(callDetails)
@@ -180,12 +180,7 @@ async def post():
                 Span("Initializing", id="call-status", cls="font-bold text-blue-600"),
                 cls="mb-4 text-gray-700"
             ),
-            Div(
-                "Call ID: ",
-                Span(callDetails.get("callId"), id="call-id", cls="font-bold text-gray-900"),
-                cls="mb-6 text-gray-700"
-            ),
-            Button("End call", id="end-call", cls=TW_BUTTON + " bg-red-500 hover:bg-red-600", hx_get="/end", hx_swap="outerHTML"),
+            Button("Colgar/End Call", id="end-call", cls=TW_BUTTON + " bg-red-500 hover:bg-red-600", hx_get="/end", hx_swap="outerHTML"),
             Div("", id="transcript", cls="mt-6 p-4 bg-gray-50 rounded-lg text-gray-700 min-h-[100px]"),
             Script(code=js),
             cls="space-y-4"
@@ -195,6 +190,6 @@ async def post():
 
 @rt("/end")
 def get():
-    return Button("Restart", cls=TW_BUTTON + " bg-green-500 hover:bg-green-600", hx_get="/", hx_target="body", hx_boost="false")
+    return Button("Llamar/Restart", id="re-start", cls=TW_BUTTON + " bg-green-500 hover:bg-green-600", hx_get="/", hx_target="body", hx_boost="false")
 
 serve()
